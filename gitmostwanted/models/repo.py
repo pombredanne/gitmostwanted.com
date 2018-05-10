@@ -1,39 +1,47 @@
-from sqlalchemy.dialects.mysql import SMALLINT
+from sqlalchemy.dialects.mysql import INTEGER, SMALLINT
 from sqlalchemy.sql import expression
 from gitmostwanted.lib.status import Status
 from gitmostwanted.lib.regex import SearchTerm
-from gitmostwanted.lib.text import TextWithoutSmilies
+from gitmostwanted.lib.text import TextWithoutSmilies, TextNormalized
 from gitmostwanted.lib.url import Url
-from gitmostwanted.app import db
+from gitmostwanted.app import app, db
 from werkzeug.datastructures import ImmutableMultiDict
 from datetime import datetime
 
 
 class Repo(db.Model):
     __tablename__ = 'repos'
-    __table_args__ = {
-        'mysql_engine': 'InnoDB',
-        'mysql_charset': 'utf8',
-        'mysql_collate': 'utf8_general_ci'
-    }
 
     id = db.Column(db.BigInteger, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    language = db.Column(db.String(25))
-    full_name = db.Column(db.String(120), nullable=False)
-    description = db.Column(db.String(250))
-    html_url = db.Column(db.String(150), nullable=False)
-    homepage = db.Column(db.String(150))
-    created_at = db.Column(db.DateTime, nullable=False, index=True)
     checked_at = db.Column(db.DateTime, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, index=True)
+    description = db.Column(db.String(250))
+    forks_count = db.Column(INTEGER(unsigned=True), nullable=False, server_default='0', index=True)
+    full_name = db.Column(db.String(120), nullable=False)
+    homepage = db.Column(db.String(150))
+    html_url = db.Column(db.String(150), nullable=False)
+    language = db.Column(db.String(25))
+    last_reset_at = db.Column(db.DateTime, index=True)
     mature = db.Column(db.Boolean, nullable=False, server_default=expression.false(), index=True)
-    worth = db.Column(SMALLINT(display_width=1), nullable=False, server_default='3', index=True)
-    stargazers_count = db.Column(db.Integer, nullable=False, server_default='0')
-    status_updated_at = db.Column(db.DateTime)
+    name = db.Column(db.String(80), nullable=False)
+    open_issues_count = db.Column(INTEGER(unsigned=True), nullable=False, server_default='0')
+    size = db.Column(INTEGER(unsigned=True), nullable=False, server_default='0')
+    stargazers_count = db.Column(
+        INTEGER(unsigned=True), nullable=False, server_default='0', index=True
+    )
     status = db.Column(
         db.Enum('promising', 'new', 'unknown', 'deleted', 'hopeless'),
         server_default='new', nullable=False, index=True
     )
+    status_updated_at = db.Column(db.DateTime)
+    subscribers_count = db.Column(
+        INTEGER(unsigned=True), nullable=False, server_default='0', index=True
+    )
+    worth = db.Column(
+        SMALLINT(display_width=2), index=True, nullable=False,
+        server_default=str(app.config['REPOSITORY_WORTH_DEFAULT'])
+    )
+    worth_max = db.Column(SMALLINT(display_width=2), nullable=False, server_default='0')
 
     def __setattr__(self, key, value):
         if key == 'status' and self.status != value:
@@ -44,7 +52,10 @@ class Repo(db.Model):
             value = str(Url(value)) if value else None
 
         if key == 'description':
-            value = str(TextWithoutSmilies(value[:250])) if value else None
+            value = str(TextWithoutSmilies(str(TextNormalized(value[:250])))) if value else None
+
+        if key == 'worth' and self.worth_max < value:
+            self.worth_max = value
 
         super().__setattr__(key, value)
 

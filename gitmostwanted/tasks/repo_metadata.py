@@ -1,18 +1,21 @@
-from gitmostwanted.app import app, db, celery
-from gitmostwanted.models.repo import Repo, RepoMean
-from gitmostwanted.lib.github import api
-from sqlalchemy.sql import func, expression
 from datetime import datetime, timedelta
+from gitmostwanted.app import app, log, db, celery
+from gitmostwanted.lib.github import api
+from gitmostwanted.models.repo import Repo, RepoMean
+from sqlalchemy.sql import func, expression
 
 
 @celery.task()
 def metadata_maturity(num_months):
-    repos = Repo.query\
-        .filter(Repo.created_at <= datetime.now() + timedelta(days=num_months * 30 * -1))\
-        .filter(Repo.mature.is_(False))
-    for repo in repos:
-        repo.mature = True
+    cnt = func.count(RepoMean.repo_id).label("cnt")
+    repos = db.session.query(RepoMean.repo_id, cnt).join(Repo)\
+        .filter(Repo.mature.is_(False))\
+        .group_by(RepoMean.repo_id)\
+        .having(cnt >= num_months)
+    for (repo_id, cnt) in repos:
+        db.session.query(Repo).filter(Repo.id == repo_id).update({Repo.mature: True})
         db.session.commit()
+        log.info('{0} marked as mature ({1})'.format(repo_id, cnt))
     return repos.count()
 
 
@@ -26,18 +29,23 @@ def metadata_refresh(num_days):
         .yield_per(25)\
         .limit(300)  # GitHub allows only 3000 calls per day within a token
     for repo in repos:
-        repo.checked_at = datetime.now()
-
         details, code = api.repo_info(repo.full_name)
         if not details:
             if 400 <= code < 500:
                 repo.worth -= 1
-                app.logger.info(
-                    '{0} is not found, the "worth" has been decreased by 1'.format(repo.full_name)
+                db.session.commit()
+                log.info(
+                    '{0} is not found, the "worth" has been decreased by 1'
+                    .format(repo.full_name)
                 )
             continue
 
-        for key in ['description', 'language', 'homepage', 'stargazers_count']:
+        repo.checked_at = datetime.now()
+
+        for key in [
+            'description', 'forks_count', 'homepage', 'language', 'open_issues_count', 'size',
+            'stargazers_count', 'subscribers_count'
+        ]:
             if getattr(repo, key) != details[key]:
                 setattr(repo, key, details[key])
 
@@ -57,9 +65,9 @@ def metadata_trend(num_days):
         .group_by(RepoMean.repo_id)\
         .all()
     for result in filter(lambda x: ',' in x[1], results):
-        curr, prev = result[1].split(',')
-        if curr < prev:
-            app.logger.info(
+        curr, prev = map(lambda v: float(v), result[1].split(','))
+        if is_worth_decreased(curr, prev):
+            log.info(
                 'Mean value of {0} is {1}, previous was {2}. The "worth" has been decreased by 1'
                 .format(result[0], curr, prev)
             )
@@ -71,6 +79,14 @@ def metadata_trend(num_days):
 
 @celery.task()
 def metadata_erase():
-    cnt = Repo.query.filter(Repo.worth < 0).delete()
+    Repo.query\
+        .filter((Repo.worth < -5) & (Repo.worth_max <= app.config['REPOSITORY_WORTH_DEFAULT']))\
+        .delete()
     db.session.commit()
-    return cnt
+
+
+# defines the logic to determinate if worth is really decreased or just slightly jumped down
+def is_worth_decreased(curr, prev):
+    if curr < 3:
+        return True
+    return curr < prev and ((prev - curr) * 100 / prev) >= 10

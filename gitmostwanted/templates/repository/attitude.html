@@ -1,6 +1,10 @@
 {% extends "layout.html" %}
 
-{% set page_title = 'Attitude' %}
+{% if attitude in ['like', 'dislike', 'neutral'] %}
+  {% set page_title = 'Attitude ({})'.format(attitude) %}
+{% else %}
+  {% set page_title = 'Attitude' %}
+{% endif %}
 
 {% from "macros/attitude.html" import user_attitude %}
 {% from "macros/navigation.html" import pagination %}
@@ -8,8 +12,9 @@
 
 {% block body %}
   <ul class="breadcrumbs">
-    <li><a href="/">Trending</a></li>
-    <li {{ 'class=unavailable' if not attitude }}><a href="{{ url_for('user_attitude.list_unchecked') }}">All</a></li>
+    <li><a href="{{ url_for('repo_trending.list_by_range') }}">&larr;Trending</a></li>
+    <li {{ 'class=unavailable' if not attitude }}><a
+      href="{{ url_for('user_attitude.list_unchecked') }}">New</a></li>
     {% for r in ['like', 'dislike', 'neutral'] %}
       <li {{ 'class=unavailable' if attitude == r }}>
         <a href="{{ url_for('user_attitude.list_attitude', attitude=r) }}">{{ r|capitalize() }}</a>
@@ -38,6 +43,6 @@
     pagination(
       repos, lang=request.args.get('lang'), status=request.args.get('status'),
       mature=request.args.get('mature'), term=request.args.get('term')
-    )
+    ) if repos.pages
   }}
 {% endblock %}

@@ -2,12 +2,17 @@
 class Config:
     # Custom
     DEBUG_FILE = '/tmp/gmw.log'
+    ENVIRONMENT = 'development'
+
+    # Application related
+    REPOSITORY_WORTH_SOLID = 6
+    REPOSITORY_WORTH_DEFAULT = 3
 
     # Flask
+    DEBUG = True
     PERMANENT_SESSION_LIFETIME = 1209600  # 14 days
     SECRET_KEY = ''
     TESTING = False
-    DEBUG = True
 
     # SQLAlchemy
     SQLALCHEMY_ECHO = False
@@ -17,9 +22,6 @@ class Config:
     # Celery
     CELERY_TIMEZONE = 'Europe/Berlin'
     CELERY_BROKER_URL = ''
-    CELERY_RESULT_SERIALIZER = 'json'
-    CELERY_TASK_SERIALIZER = 'json'
-    CELERY_ACCEPT_CONTENT = ['json']
 
     # Oauth
     GITHUB_AUTH = (None, None)
@@ -31,9 +33,13 @@ class ConfigDevelopment(Config):
 
 
 class ConfigTesting(Config):
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    ENVIRONMENT = 'testing'
+    GITHUB_AUTH = ('Test', '')
     SECRET_KEY = 'testing'  # noqa
     TESTING = True
 
 
 class ConfigProduction(Config):
     DEBUG = False
+    ENVIRONMENT = 'production'

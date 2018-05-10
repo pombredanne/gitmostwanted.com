@@ -1,3 +1,8 @@
+"""
+@todo #113:120m GitHub API must be re-factored. The current architecture is too complicated to
+ paginate.
+"""
+
 from gitmostwanted.app import app
 import requests
 
@@ -6,7 +11,7 @@ def fetch(uri: str, method: str = 'get', token: str = None):
     """:rtype: (str|None, int)"""
     uri = 'https://api.github.com/{0}'.format(uri)
     auth = app.config['GITHUB_AUTH']
-    headers = {}
+    headers = {'Accept': 'application/vnd.github.mercy-preview+json'}
     json = None
 
     if token:

@@ -1,10 +1,10 @@
-from gitmostwanted.lib.github.api import repo_info
-from gitmostwanted.lib.bigquery.job import Job
+from datetime import date, datetime, timedelta
 from gitmostwanted.app import app, db, celery
-from gitmostwanted.services import bigquery
+from gitmostwanted.lib.bigquery.job import Job
+from gitmostwanted.lib.github.api import repo_info
 from gitmostwanted.models.repo import Repo
 from gitmostwanted.models import report
-from datetime import date, datetime, timedelta
+from gitmostwanted.services import bigquery
 from time import sleep
 
 
@@ -95,13 +95,13 @@ def most_starred_sync(model_name: str, query: str):
                 cnt_watch=row[2],
                 repo=Repo(
                     id=info['id'],
-                    name=info['name'],
-                    language=info['language'],
-                    full_name=info['full_name'],
+                    created_at=datetime.strptime(info['created_at'], '%Y-%m-%dT%H:%M:%SZ'),
                     description=info['description'],
-                    html_url=info['html_url'],
+                    full_name=info['full_name'],
                     homepage=info['homepage'],
-                    created_at=datetime.strptime(info['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+                    html_url=info['html_url'],
+                    language=info['language'],
+                    name=info['name']
                 )
             )
         )

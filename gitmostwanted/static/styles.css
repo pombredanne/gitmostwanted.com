@@ -11,7 +11,12 @@ nav.top-bar{ margin-bottom: 0!important; }
     #gh-entries ul > li.deleted{ opacity: 0.5; }
 
 ul.breadcrumbs{ border-radius: 0; }
-    ul.breadcrumbs li:before{ margin: 0 0.6rem; }
+    ul.breadcrumbs li:before{ margin: 0 0.7rem; }
+
+@media screen and (max-device-width: 320px) {
+    ul.breadcrumbs li:before{ margin: 0 0.4rem; }
+    form.repository-filter dl.sub-nav dd{ margin-left: 0.6rem; }
+}
 
 div.user-attitude{ display: block; }
 

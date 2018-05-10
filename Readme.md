@@ -1,11 +1,13 @@
-[![wercker status](https://app.wercker.com/status/7767a5325ebf378ede0ac3016c992ebc/s/master "wercker status")](https://app.wercker.com/project/bykey/7767a5325ebf378ede0ac3016c992ebc)
+[![wercker status](https://app.wercker.com/status/399c14de0d935628b87623cc0d46ad34/s/master "wercker status")](https://app.wercker.com/project/byKey/399c14de0d935628b87623cc0d46ad34)
 [![Code Climate](https://codeclimate.com/github/kkamkou/gitmostwanted.com/badges/gpa.svg)](https://codeclimate.com/github/kkamkou/gitmostwanted.com)
-[![Coverage Status](https://coveralls.io/repos/kkamkou/gitmostwanted.com/badge.svg?branch=HEAD&service=github)](https://coveralls.io/github/kkamkou/gitmostwanted.com?branch=HEAD)
+[![Coverage Status](https://coveralls.io/repos/github/kkamkou/gitmostwanted.com/badge.svg?branch=HEAD)](https://coveralls.io/github/kkamkou/gitmostwanted.com?branch=HEAD)
 
 # gitmostwanted
-Advanced explorer of github.com. The main goal is to highlight the most interesting repositories and exclude others. You can find some concepts in the [Wiki](https://github.com/kkamkou/gitmostwanted.com/wiki).
+Advanced explore of github.com. The main goal is to highlight the most interesting repositories and exclude others. You can find some concepts in the [Wiki](https://github.com/kkamkou/gitmostwanted.com/wiki).
 
-## Donation
+## Buy me a coffee
+[![Buy me a coffee](https://img.shields.io/badge/Donate-PayPal-green.svg)](http://2ka.by/coffee?project=gitmostwanted.com)
+
 If you would like to help the project, please consider these topics:
 - GMW uses [Google BigQuery](https://cloud.google.com/bigquery/pricing) and the service is pretty expensive.
 - GMW is located on a private machine and hosted by [ProfitBricks](https://www.profitbricks.de/).
@@ -14,6 +16,8 @@ If you would like to help the project, please consider these topics:
 
 ```bash
 # export PYTHONPATH="`pwd`:${PYTHONPATH}"
+# export GMW_APP_ENV=production
+cp instance.cfg.distr /path/to/instance.cfg
 export GMW_APP_SETTINGS=/path/to/instance.cfg
 python gitmostwanted/web.py
 ```
@@ -21,14 +25,19 @@ python gitmostwanted/web.py
 ## Tests
 
 ```bash
-py.test --pep8 --clearcache --cov gitmostwanted tests/unit
+export GMW_APP_ENV=testing
+pip install pytest pytest-pep8 responses
+py.test --pep8 gitmostwanted tests/unit
+# py.test --pep8 --cov . --cov-report annotate gitmostwanted tests/unit
 ```
 
 ## Docker
 The first time [it'll fail](https://github.com/docker/compose/issues/374)
 
 ```bash
+cp instance.cfg.distr instance.cfg
 [sudo] docker-compose up -d
+# open http://127.0.0.1:5000/ in your browser
 ```
 
 ## Contribution
@@ -38,10 +47,5 @@ The first time [it'll fail](https://github.com/docker/compose/issues/374)
 
 ## License
 The MIT License (MIT)
-Copyright (c) 2015-2016 Kanstantsin Kamkou <2ka.by>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Copyright (c) 2015-2017 Kanstantsin Kamkou <2ka.by>

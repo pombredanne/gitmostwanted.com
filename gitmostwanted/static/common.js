@@ -40,8 +40,15 @@ $(function () {
   });
 
   $('a.attitude').click(function () {
-    $.get($(this).attr('href'), function () {
-      window.location.reload();
+    if (!$(this).hasClass('secondary')) {
+      return false;
+    }
+    var elem = $(this);
+    $.get(elem.attr('href'), function () {
+      elem.siblings().each(function () {
+        $(this).removeClass('success info alert').addClass('secondary');
+      });
+      elem.addClass(elem.removeClass('secondary').data('activeClass'));
     });
     return false;
   });

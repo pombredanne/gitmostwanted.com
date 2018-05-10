@@ -2,7 +2,13 @@
   <li data-url="{{ repo.html_url }}" class="{{ repo.status }}">
     <div>
       <h4>
-        <a href="{{ repo.html_url }}" target="_blank">{{ repo.full_name }}</a>
+        <a href="{{ repo.html_url }}" target="_blank">
+          {% if repo.worth >= config.REPOSITORY_WORTH_SOLID %}
+            <b>{{ repo.full_name }}</b>
+          {% else %}
+            {{ repo.full_name }}
+          {% endif %}
+        </a>
 
         {% if repo.mature %}
           <sup class="secondary label" title="Mature enough (Older than 3 months)">m</sup>
@@ -13,10 +19,12 @@
             title="{{ repo.status|capitalize() }}">{{ repo.status[0] }}</sup>
         {% endif %}
 
-        {% if repo.worth != 3 %}
-          <sup class="{{ 'success' if repo.worth > 3 else 'warning' }} label">
-            <i class="fi-arrow-{{ 'up' if repo.worth > 3 else 'down' }}"></i>
-          </sup>
+        {% if repo.worth != config.REPOSITORY_WORTH_DEFAULT %}
+          {% if repo.worth > config.REPOSITORY_WORTH_DEFAULT %}
+            <sup class="success label"><i class="fi-arrow-up"></i></sup>
+          {% else %}
+            <sup class="warning label"><i class="fi-arrow-down"></i></sup>
+          {% endif %}
         {% endif %}
 
         {% if repo.language %}

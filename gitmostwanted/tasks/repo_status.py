@@ -1,27 +1,28 @@
+from datetime import datetime, timedelta
+from gitmostwanted.app import db, celery, log
 from gitmostwanted.models.repo import Repo, RepoStars, RepoMean
-from gitmostwanted.app import db, celery
 from sqlalchemy.sql import expression
 from statistics import variance, mean
-from datetime import datetime, timedelta
 from types import GeneratorType
 
 
 @celery.task()
 def status_detect(num_days, num_segments):
-    repos = Repo.query.filter().filter(Repo.status == 'unknown')
+    repos = Repo.query.filter(Repo.status == 'unknown')
     for repo in repos:
         result = db.session.query(RepoStars.day, RepoStars.stars)\
             .filter(RepoStars.repo_id == repo.id)\
             .order_by(expression.asc(RepoStars.day))\
+            .limit(num_days)\
             .all()
 
-        val = 0 if not result else result_mean(
-            result_split(list(result_normalize(result, num_days)), num_segments)
+        val = 0 if not result else repo_mean(
+            result, num_days, num_segments, last_known_mean(repo.id)
         )
 
         repo.status = 'hopeless' if val < 1 else 'promising'
 
-        db.session.add(RepoMean(repo=repo, value=val))
+        db.session.merge(RepoMean(repo=repo, value=val, created_at=datetime.now()))
         db.session.commit()
 
 
@@ -33,20 +34,40 @@ def status_refresh(num_days):
     for repo in repos:
         RepoStars.query.filter(RepoStars.repo_id == repo.id).delete()
 
-        repo.worth += 1 if repo.status == 'promising' else -1
+        if repo.status != 'promising':
+            repo.worth += -1
+        else:
+            repo.worth += 1
+            log.info('The "worth" value for {0} has been increased by 1'.format(repo.full_name))
+
         repo.status = 'new' if repo.worth > -1 else 'deleted'
 
         db.session.commit()
 
 
-def result_mean(chunks: GeneratorType):
-    return mean([1 if variance(chunk) >= 1000 else mean(chunk) for chunk in chunks])
+def last_known_mean(repo_id: int, default: float = 0.0):
+    last_mean = db.session.query(RepoMean.value) \
+        .filter(RepoMean.repo_id == repo_id) \
+        .order_by(expression.desc(RepoMean.created_at)) \
+        .first()
+    return default if not last_mean else last_mean.value
 
 
-def result_normalize(lst: list, num_days: int):
-    fst = lst[0][0]
+def repo_mean(lst: list, lst_size: int, num_segments: int, default_gap_val: float):
+    return result_mean(
+        result_split(list(result_normalize(lst, lst_size)), num_segments),
+        default_gap_val
+    )
+
+
+def result_mean(chunks: GeneratorType, normalized_val: float):
+    return mean([normalized_val if variance(chunk) >= 1000 else mean(chunk) for chunk in chunks])
+
+
+def result_normalize(lst: list, lst_size: int):
+    fst = sorted(lst)[0][0]
     lst = dict(lst)
-    for i in range(num_days):
+    for i in range(lst_size):
         key = fst + i
         yield 0 if key not in lst else lst[key]
 
